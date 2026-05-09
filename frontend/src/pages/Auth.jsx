@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Mic } from 'lucide-react';
 import { auth, googleProvider } from '../firebase';
 import { signInWithPopup } from 'firebase/auth';
 import axios from 'axios';
@@ -38,10 +38,9 @@ const Auth = ({ initialMode = 'login' }) => {
 
     try {
       if (mode === 'login') {
-        const res = await axios.post('\/api/auth/login', formData);
+        const res = await axios.post('/api/auth/login', formData);
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
-        // If profile is incomplete, send to setup
         const u = res.data.user;
         if (!u.institution && !u.subject && !u.semester) {
           navigate('/profile/setup');
@@ -49,7 +48,7 @@ const Auth = ({ initialMode = 'login' }) => {
           navigate('/');
         }
       } else if (mode === 'forgot-password') {
-        const res = await axios.post('\/api/auth/reset-password', {
+        const res = await axios.post('/api/auth/reset-password', {
           email: formData.email,
           newPassword: formData.password
         });
@@ -57,22 +56,19 @@ const Auth = ({ initialMode = 'login' }) => {
         alert(res.data.message || 'Password reset successfully!');
         setFormData({ ...formData, password: '', confirmPassword: '' });
       } else {
-        // Signup: only basic info
-        await axios.post('\/api/auth/register', {
+        await axios.post('/api/auth/register', {
           name: formData.name,
           email: formData.email,
           password: formData.password,
           role: formData.role
         });
-        // Auto-login after signup
-        const res = await axios.post('\/api/auth/login', {
+        const res = await axios.post('/api/auth/login', {
           email: formData.email,
           password: formData.password,
           role: formData.role
         });
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
-        // New users always go to profile setup
         navigate('/profile/setup');
       }
     } catch (err) {
@@ -88,19 +84,15 @@ const Auth = ({ initialMode = 'login' }) => {
       setIsLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-
-      const res = await axios.post('\/api/auth/google', {
+      const res = await axios.post('/api/auth/google', {
         email: user.email,
         name: user.displayName,
         role: formData.role,
         firebaseUid: user.uid,
         photoUrl: user.photoURL
       });
-
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-
-      // New Google user (no institution set) → profile setup
       const u = res.data.user;
       if (!u.institution && !u.subject && !u.semester) {
         navigate('/profile/setup');
@@ -108,9 +100,8 @@ const Auth = ({ initialMode = 'login' }) => {
         navigate('/');
       }
     } catch (error) {
-      console.error(error);
       if (error.code === 'auth/popup-blocked') {
-        setError('Popup was blocked by your browser. Please allow popups for this site and try again.');
+        setError('Popup was blocked. Please allow popups for this site.');
       } else if (error.code === 'auth/cancelled-popup-request') {
         setError('');
       } else {
@@ -121,123 +112,180 @@ const Auth = ({ initialMode = 'login' }) => {
     }
   };
 
-  const inputStyle = { borderRadius: '0.75rem' };
-  const labelStyle = { display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--secondary-color)' };
-  const sectionStyle = { marginBottom: '1rem' };
+  // Role is tracked via formData.role
 
   return (
-    <div className="auth-container">
-      {/* Brand Logo */}
-      <div style={{ position: 'absolute', top: '2rem', left: '2rem', zIndex: 10, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <img src="/logo.png" alt="NoteMic Pro Logo" style={{ height: '40px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
-        <h1 style={{ color: 'var(--primary-color)', fontSize: '1.8rem', fontWeight: 800, margin: 0 }}>NoteMic Pro</h1>
-      </div>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '2rem',
+      background: 'var(--bg-color)',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Blurred background circles */}
+      <div style={{ position: 'absolute', top: '-80px', left: '-80px', width: '300px', height: '300px', borderRadius: '50%', background: 'var(--primary-color)', opacity: 0.1, filter: 'blur(40px)' }} />
+      <div style={{ position: 'absolute', bottom: '-100px', right: '-60px', width: '350px', height: '350px', borderRadius: '50%', background: 'var(--secondary-color)', opacity: 0.1, filter: 'blur(50px)' }} />
 
-      <div className="auth-card">
-        {/* Login / Signup Toggle */}
-        <div style={{ display: 'flex', background: 'var(--input-bg)', borderRadius: '2rem', padding: '0.4rem', marginBottom: '2rem', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)' }}>
+      <div className="card-interactive" style={{
+        borderRadius: '2rem',
+        padding: '2.5rem',
+        width: '100%',
+        maxWidth: '440px',
+        animation: 'cardIn 0.5s cubic-bezier(0.16,1,0.3,1)',
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        {/* Brand */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+          <div style={{ background: 'var(--primary-color)', borderRadius: '8px', padding: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px var(--btn-shadow)' }}>
+            <Mic size={24} color="#fff" />
+          </div>
+          <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-color)' }}>NoteMic Pro</h1>
+        </div>
+
+        {/* Login / Signup Toggle — pill style */}
+        <div style={{ display: 'flex', background: 'var(--input-bg)', borderRadius: '2rem', padding: '0.35rem', marginBottom: '1.75rem', border: '1px solid var(--border-color)' }}>
           {['login', 'signup'].map(t => (
             <button key={t} type="button" onClick={() => { setMode(t); setError(''); }}
-              style={{ flex: 1, padding: '0.85rem 1.5rem', borderRadius: '1.75rem', border: 'none', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.5px', background: mode === t ? 'var(--primary-color)' : 'transparent', color: mode === t ? '#fff' : 'var(--secondary-color)', boxShadow: mode === t ? '0 8px 15px rgba(99,102,241,0.3)' : 'none', transition: 'all 0.4s cubic-bezier(0.175,0.885,0.32,1.275)' }}>
+              style={{
+                flex: 1, padding: '0.7rem 1rem', borderRadius: '1.75rem', border: 'none',
+                fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.5px',
+                background: mode === t ? 'var(--primary-color)' : 'transparent',
+                color: mode === t ? '#fff' : 'var(--text-muted)',
+                boxShadow: mode === t ? '0 4px 12px var(--btn-shadow)' : 'none',
+                transition: 'all 0.3s ease',
+              }}>
               {t === 'login' ? 'Existing User' : 'New User'}
             </button>
           ))}
         </div>
 
-        <div style={{ animation: 'fadeIn 0.5s ease-in' }}>
-          <h2 style={{ textAlign: 'left', marginBottom: '0.4rem', fontSize: '1.8rem', fontWeight: 800 }}>
+        {/* Heading */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: '0 0 0.35rem', fontSize: '1.7rem', fontWeight: 800, color: 'var(--text-color)' }}>
             {mode === 'login' ? 'Welcome Back!' : mode === 'forgot-password' ? 'Reset Password' : 'Start Your Journey'}
           </h2>
-          <p style={{ color: 'var(--secondary-color)', marginBottom: '2rem', fontSize: '0.95rem' }}>
-            {mode === 'login' ? 'Login with your credentials to continue.' :
-             mode === 'forgot-password' ? 'Enter your registered email and new password.' :
-             'Create an account — you can fill in your profile after signing up.'}
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.9rem' }}>
+            {mode === 'login' ? 'Login with your credentials to continue.'
+              : mode === 'forgot-password' ? 'Enter your email and new password.'
+              : 'Create an account to get started.'}
           </p>
         </div>
 
+        {/* Error */}
         {error && (
-          <div style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '1rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid rgba(239,68,68,0.2)', fontSize: '0.9rem', fontWeight: 600 }}>
+          <div style={{ background: 'rgba(239,68,68,0.08)', color: '#dc2626', padding: '0.85rem 1rem', borderRadius: '0.75rem', marginBottom: '1.25rem', border: '1px solid rgba(239,68,68,0.2)', fontSize: '0.88rem', fontWeight: 600 }}>
             ⚠️ {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* Role Pills */}
+          {/* Role Toggle — unified style */}
           {mode !== 'forgot-password' && (
-            <div style={{ display: 'flex', background: 'var(--bg-color)', padding: '0.35rem', borderRadius: '0.75rem', marginBottom: '1.5rem', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '0.3rem', borderRadius: '0.75rem', marginBottom: '1.25rem', border: '1px solid var(--border-color)', gap: '0.25rem' }}>
               {['student', 'teacher'].map(r => (
                 <button key={r} type="button" onClick={() => handleRoleToggle(r)}
-                  style={{ flex: 1, padding: '0.6rem', borderRadius: '0.5rem', border: 'none', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', textTransform: 'capitalize', background: formData.role === r ? 'var(--card-bg)' : 'transparent', color: formData.role === r ? 'var(--primary-color)' : 'var(--secondary-color)', boxShadow: formData.role === r ? '0 2px 8px rgba(0,0,0,0.05)' : 'none', transition: 'all 0.3s ease' }}>
-                  {r} Account
+                  style={{
+                    flex: 1, padding: '0.55rem', borderRadius: '0.5rem', border: 'none',
+                    fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
+                    background: formData.role === r ? 'var(--secondary-color)' : 'transparent',
+                    color: formData.role === r ? '#fff' : 'var(--text-muted)',
+                    boxShadow: formData.role === r ? '0 2px 6px var(--btn-shadow)' : 'none',
+                    transition: 'all 0.25s ease',
+                  }}>
+                  {r === 'student' ? 'Student Account' : 'Teacher Account'}
                 </button>
               ))}
             </div>
           )}
 
-          {/* Full Name (signup only) */}
+          {/* Full Name */}
           {mode === 'signup' && (
-            <div style={sectionStyle}>
-              <label style={labelStyle}>Full Name *</label>
-              <input type="text" name="name" className="form-control hover-lift" placeholder="Your full name" value={formData.name} onChange={handleChange} required style={inputStyle} />
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Full Name *</label>
+              <input type="text" name="name" className="form-control" placeholder="Your full name"
+                value={formData.name} onChange={handleChange} required
+                style={{ borderRadius: '0.75rem', background: 'var(--input-bg)', border: '1.5px solid var(--border-color)', color: 'var(--text-color)' }} />
             </div>
           )}
 
           {/* Email */}
-          <div style={sectionStyle}>
-            <label style={labelStyle}>Email Address *</label>
-            <input type="email" name="email" className="form-control hover-lift" placeholder="you@example.com" value={formData.email} onChange={handleChange} required style={inputStyle} />
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email Address *</label>
+            <input type="email" name="email" className="form-control" placeholder="you@example.com"
+              value={formData.email} onChange={handleChange} required
+              style={{ borderRadius: '0.75rem', background: 'var(--input-bg)', border: '1.5px solid var(--border-color)', color: 'var(--text-color)' }} />
           </div>
 
           {/* Password */}
-          <div style={{ ...sectionStyle, position: 'relative' }}>
-            <label style={labelStyle}>{mode === 'forgot-password' ? 'New Password *' : 'Password *'}</label>
-            <input type={showPassword ? 'text' : 'password'} name="password" className="form-control hover-lift" placeholder="••••••••" value={formData.password} onChange={handleChange} required style={{ ...inputStyle, paddingRight: '2.5rem' }} />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '1rem', top: '62%', transform: 'translateY(-10%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--secondary-color)' }}>
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          <div style={{ marginBottom: '0.5rem', position: 'relative' }}>
+            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              {mode === 'forgot-password' ? 'New Password *' : 'Password *'}
+            </label>
+            <input type={showPassword ? 'text' : 'password'} name="password" className="form-control"
+              placeholder="••••••••" value={formData.password} onChange={handleChange} required
+              style={{ borderRadius: '0.75rem', paddingRight: '2.5rem', background: 'var(--input-bg)', border: '1.5px solid var(--border-color)', color: 'var(--text-color)' }} />
+            <button type="button" onClick={() => setShowPassword(!showPassword)}
+              style={{ position: 'absolute', right: '1rem', top: '64%', transform: 'translateY(-10%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
             </button>
           </div>
 
-          {/* Forgot Password link */}
+          {/* Forgot Password */}
           {mode === 'login' && (
-            <div style={{ textAlign: 'right', marginBottom: '1.5rem' }}>
-              <a href="#" onClick={(e) => { e.preventDefault(); setMode('forgot-password'); }} style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--primary-color)' }}>Forgot password?</a>
+            <div style={{ textAlign: 'right', marginBottom: '1.25rem' }}>
+              <a href="#" onClick={(e) => { e.preventDefault(); setMode('forgot-password'); }}
+                style={{ fontSize: '0.83rem', fontWeight: 600, color: 'var(--primary-color)', textDecoration: 'none' }}>
+                Forgot password?
+              </a>
             </div>
           )}
 
-          {/* Confirm Password (signup / forgot) */}
+          {/* Confirm Password */}
           {(mode === 'signup' || mode === 'forgot-password') && (
-            <div style={{ ...sectionStyle, marginBottom: '1.5rem', position: 'relative' }}>
-              <label style={labelStyle}>Confirm Password *</label>
-              <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" className="form-control hover-lift" placeholder="Repeat password" value={formData.confirmPassword} onChange={handleChange} required style={{ ...inputStyle, paddingRight: '2.5rem' }} />
-              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: '1rem', top: '62%', transform: 'translateY(-10%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--secondary-color)' }}>
-                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Confirm Password *</label>
+              <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" className="form-control"
+                placeholder="Repeat password" value={formData.confirmPassword} onChange={handleChange} required
+                style={{ borderRadius: '0.75rem', paddingRight: '2.5rem', background: 'var(--input-bg)', border: '1.5px solid var(--border-color)', color: 'var(--text-color)' }} />
+              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{ position: 'absolute', right: '1rem', top: '62%', transform: 'translateY(-10%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
             </div>
           )}
 
-          <button type="submit" disabled={isLoading}
-            style={{ width: '100%', padding: '1rem', borderRadius: '0.75rem', background: mode === 'login' ? 'linear-gradient(135deg,#6366f1,#4f46e5)' : 'linear-gradient(135deg,#10b981,#059669)', color: 'white', border: 'none', fontSize: '1.05rem', fontWeight: 700, cursor: 'pointer', boxShadow: mode === 'login' ? '0 10px 20px -5px rgba(99,102,241,0.4)' : '0 10px 20px -5px rgba(16,185,129,0.4)', transition: 'all 0.3s', opacity: isLoading ? 0.7 : 1, marginTop: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-            onMouseEnter={e => { if (!isLoading) e.currentTarget.style.transform = 'translateY(-2px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}>
+          {/* Submit */}
+          <button type="submit" disabled={isLoading} className="btn-interactive"
+            style={{
+              width: '100%', padding: '0.95rem', marginTop: '0.75rem', borderRadius: '0.75rem',
+              fontSize: '1rem', fontWeight: 700, opacity: isLoading ? 0.75 : 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+            }}>
             {isLoading
               ? <div style={{ width: '20px', height: '20px', border: '3px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               : mode === 'login' ? 'Sign In to Dashboard' : mode === 'forgot-password' ? 'Reset Password' : 'Create Account'}
           </button>
         </form>
 
-        {/* Google Button */}
+        {/* Google */}
         {mode !== 'forgot-password' && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', gap: '0.75rem' }}>
               <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
-              <span style={{ fontSize: '0.8rem', color: 'var(--secondary-color)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>or continue with</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', whiteSpace: 'nowrap' }}>or continue with</span>
               <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
             </div>
 
-            <button onClick={handleGoogleAuth} type="button" disabled={isLoading}
-              style={{ width: '100%', padding: '1rem', borderRadius: '0.75rem', background: 'var(--card-bg)', color: 'var(--text-color)', border: '1px solid var(--border-color)', fontSize: '1rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', transition: 'all 0.3s ease' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-color)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--card-bg)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+            <button onClick={handleGoogleAuth} type="button" disabled={isLoading} className="card-interactive"
+              style={{
+                width: '100%', padding: '0.9rem', borderRadius: '0.75rem',
+                color: 'var(--text-color)',
+                fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+              }}>
               <svg style={{ width: '20px', height: '20px' }} viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -248,13 +296,23 @@ const Auth = ({ initialMode = 'login' }) => {
             </button>
 
             {mode === 'login' && (
-              <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.85rem', color: 'var(--secondary-color)' }}>
+              <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.78rem', color: '#94a3b8' }}>
                 ⚠️ Make sure popups are <strong>allowed</strong> for this site for Google sign-in to work.
               </p>
             )}
           </>
         )}
       </div>
+
+      <style>{`
+        @keyframes cardIn {
+          from { opacity: 0; transform: translateY(24px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, User, LogOut } from 'lucide-react';
+import { Home, User, LogOut, Mic } from 'lucide-react';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const [role, setRole] = useState('');
   const [profilePicture, setProfilePicture] = useState('');
+  const [battery, setBattery] = useState(null);
 
   useEffect(() => {
-    // Listen for storage changes in case profile photo gets updated
     const handleStorageChange = () => {
       const user = JSON.parse(localStorage.getItem('user'));
       if (user) {
@@ -16,7 +16,6 @@ const Navbar = () => {
         setProfilePicture(user.profile_picture || '');
       }
     };
-    
     handleStorageChange();
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -46,7 +45,9 @@ const Navbar = () => {
         onClick={() => navigate('/')} 
         style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
       >
-        <img src="/logo.png" alt="NoteMic Pro Logo" style={{ height: '32px', borderRadius: '8px' }} />
+        <div style={{ background: 'var(--primary-color)', borderRadius: '8px', padding: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <Mic size={20} color="#fff" />
+        </div>
         <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-color)' }}>
           NoteMic Pro
         </span>
@@ -76,7 +77,7 @@ const Navbar = () => {
         >
           {profilePicture ? (
             <img 
-              src={profilePicture.startsWith('http') ? profilePicture : `\${profilePicture}`}
+              src={profilePicture.startsWith('http') ? profilePicture : `http://localhost:5000${profilePicture}`}
               alt="Profile"
               style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary-color)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
             />

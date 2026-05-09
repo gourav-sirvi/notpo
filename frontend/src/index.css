@@ -1,23 +1,102 @@
 :root {
-  --primary-color: #6366f1;
-  --primary-hover: #4f46e5;
-  --bg-color: #f8fafc;
-  --card-bg: #ffffff;
-  --text-color: #1e293b;
-  --secondary-color: #64748b;
-  --border-color: #e2e8f0;
-  --input-bg: #ffffff;
+  /* LIGHT SAGE GREEN PALETTE */
+  --bg-color: rgba(243, 244, 246, 0.2);
+  --card-bg: rgba(255, 255, 255, 0.6);
+  --primary-color: #8c9d81;
+  --primary-hover: #7b8f6e;
+  --secondary-color: #b2cbad;
+  --text-color: #1b261b;
+  --text-muted: #5c6c54;
+  --border-color: rgba(210, 229, 202, 0.5);
+  --input-bg: rgba(249, 251, 249, 0.7);
+  --btn-shadow: rgba(140, 157, 129, 0.35);
+  
+  /* OVERRIDE RECORDING STUDIO GLOBALLY */
+  --studio-overlay: rgba(243, 244, 246, 0.9);
+  --studio-bg: #ffffff;
+  --studio-border: #d2e5ca;
+  --studio-topbar: #f9fbf9;
+  --studio-text: #1b261b;
+  --studio-text-muted: #5c6c54;
+  --studio-input-bg: #f9fbf9;
+  --studio-input-border: #b2cbad;
+  --studio-close-bg: #d2e5ca;
+  --studio-close-hover-bg: #8c9d81;
+  --studio-close-color: #1b261b;
+  --studio-close-hover-color: #ffffff;
+  --studio-tip-bg: #f9fbf9;
+  --studio-textarea-bg: #f9fbf9;
+  --studio-textarea-border: #b2cbad;
 }
 
 [data-theme='dark'] {
-  --bg-color: #020617; /* Very dark blue */
-  --text-color: #f8fafc;
-  --primary-color: #3b82f6;
-  --primary-hover: #60a5fa;
-  --secondary-color: #94a3b8;
-  --card-bg: rgba(30, 41, 59, 0.5);
-  --border-color: rgba(255, 255, 255, 0.1);
-  --input-bg: rgba(15, 23, 42, 0.6);
+  /* DARK SLATE NAVY PALETTE */
+  --bg-color: rgba(28, 40, 54, 0.3);
+  --card-bg: rgba(33, 53, 71, 0.5);
+  --primary-color: #506b82;
+  --primary-hover: #6a88a1;
+  --secondary-color: #3b5266;
+  --text-color: #e2e8f0;
+  --text-muted: #9cb3c4;
+  --border-color: rgba(59, 82, 102, 0.6);
+  --input-bg: rgba(23, 33, 43, 0.7);
+  --btn-shadow: rgba(80, 107, 130, 0.35);
+
+  /* OVERRIDE RECORDING STUDIO GLOBALLY */
+  --studio-overlay: rgba(28, 40, 54, 0.9);
+  --studio-bg: #213547;
+  --studio-border: #3b5266;
+  --studio-topbar: #1c2836;
+  --studio-text: #e2e8f0;
+  --studio-text-muted: #9cb3c4;
+  --studio-input-bg: #17212b;
+  --studio-input-border: #506b82;
+  --studio-close-bg: #3b5266;
+  --studio-close-hover-bg: #506b82;
+  --studio-close-color: #e2e8f0;
+  --studio-close-hover-color: #ffffff;
+  --studio-tip-bg: #1c2836;
+  --studio-textarea-bg: #17212b;
+  --studio-textarea-border: #506b82;
+}
+
+/* NEW INTERACTIVE BUTTON CLASSES */
+.btn-interactive {
+  background: var(--primary-color) !important;
+  color: #fff !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 15px var(--btn-shadow) !important;
+  border: none !important;
+  cursor: pointer;
+}
+.btn-interactive:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 10px 25px var(--btn-shadow) !important;
+  background: var(--primary-hover) !important;
+}
+.btn-interactive:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.card-interactive {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  transition: all 0.3s ease !important;
+}
+.card-interactive:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+  border-color: var(--primary-color) !important;
+}
+
+div[style*="var(--card-bg)"], 
+div[style*="var(--bg-color)"],
+nav[style*="var(--card-bg)"] {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 * {
@@ -28,9 +107,9 @@
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--bg-color);
+  background-color: transparent; /* Handled by GlobalBackground */
   color: var(--text-color);
-  transition: background-color 0.3s, color 0.3s;
+  transition: color 0.3s;
 }
 
 a {
@@ -44,14 +123,14 @@ a {
   align-items: center;
   min-height: 100vh;
   padding: 2rem;
-  background: radial-gradient(circle at top left, #a1c4fd 0%, #c2e9fb 100%);
+  background: transparent;
   position: relative;
   overflow: hidden;
   transition: background 0.3s ease;
 }
 
 [data-theme='dark'] .auth-container {
-  background: radial-gradient(circle at top left, #0f172a 0%, #1e1b4b 50%, #020617 100%);
+  background: transparent;
 }
 
 /* Light flair behind the card */
@@ -62,14 +141,14 @@ a {
   left: 15%;
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%);
   filter: blur(40px);
   z-index: 0;
   pointer-events: none;
 }
 
 [data-theme='dark'] .auth-container::before {
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
 }
 
 .auth-card {
@@ -135,6 +214,8 @@ a {
   border-radius: 0.5rem;
   border: 1px solid var(--border-color);
   background-color: var(--input-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--text-color);
   font-size: 1rem;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -150,7 +231,7 @@ select.form-control {
   appearance: none;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
   background-position: right 0.5rem center;
-  background-repeat: no-slash;
+  background-repeat: no-repeat;
   background-size: 1.5em 1.5em;
   padding-right: 2.5rem;
 }

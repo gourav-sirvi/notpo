@@ -43,7 +43,7 @@ const StudentAnalytics = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    axios.get('\/api/analytics/student', {
+    axios.get('/api/analytics/student', {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => setStats(res.data)).catch(console.error);
   }, []);

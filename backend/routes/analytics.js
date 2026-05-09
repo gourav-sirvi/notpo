@@ -17,7 +17,7 @@ router.get('/student', authenticateToken, authorizeRole('student'), (req, res) =
                 COUNT(*) as total_lectures,
                 SUM(CASE WHEN lp.status = 'completed' THEN 1 ELSE 0 END) as completed_lectures,
                 SUM(CASE WHEN lp.status = 'started' THEN 1 ELSE 0 END) as started_lectures
-            FROM Enrollment e
+            FROM ClassroomStudent e
             LEFT JOIN Lecture l ON e.classroom_id = l.classroom_id
             LEFT JOIN LectureProgress lp ON l.lecture_id = lp.lecture_id AND lp.user_id = ?
             WHERE e.student_id = ?`, 
@@ -50,7 +50,7 @@ router.get('/student', authenticateToken, authorizeRole('student'), (req, res) =
                 c.name as classroom_name,
                 COUNT(l.lecture_id) as total_lectures,
                 SUM(CASE WHEN lp.status = 'completed' THEN 1 ELSE 0 END) as completed
-            FROM Enrollment e
+            FROM ClassroomStudent e
             JOIN Classroom c ON e.classroom_id = c.id
             LEFT JOIN Lecture l ON c.id = l.classroom_id
             LEFT JOIN LectureProgress lp ON l.lecture_id = lp.lecture_id AND lp.user_id = ?
@@ -129,7 +129,7 @@ router.get('/teacher/:classId', authenticateToken, authorizeRole('teacher'), (re
                     COUNT(DISTINCT lp.lecture_id) as completed_lectures,
                     ROUND(AVG(qs.score) * 10, 0) as avg_score_pct,
                     COUNT(DISTINCT qs.id) as quizzes_taken
-                FROM Enrollment e
+                FROM ClassroomStudent e
                 JOIN User u ON e.student_id = u.id
                 LEFT JOIN Lecture l ON l.classroom_id = e.classroom_id
                 LEFT JOIN LectureProgress lp ON lp.lecture_id = l.lecture_id AND lp.user_id = u.id AND lp.status = 'completed'

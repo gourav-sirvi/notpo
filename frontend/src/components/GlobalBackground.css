@@ -1,0 +1,253 @@
+/* Global Background Container */
+.global-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -100; /* Behind everything */
+  pointer-events: none; /* Let clicks pass through */
+  overflow: hidden;
+  background: var(--bg-color); /* Fallback */
+}
+
+/* Layers */
+.bg-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+}
+
+/* Default shows light mode, Dark theme overrides */
+.light-mode-layer { opacity: 1; }
+[data-theme='dark'] ~ .global-bg .light-mode-layer, 
+[data-theme='dark'] .global-bg .light-mode-layer,
+body[data-theme='dark'] .light-mode-layer {
+  opacity: 0;
+}
+
+[data-theme='dark'] ~ .global-bg .dark-mode-layer,
+[data-theme='dark'] .global-bg .dark-mode-layer,
+body[data-theme='dark'] .dark-mode-layer {
+  opacity: 1;
+}
+
+/* ---------------------------------
+   LIGHT MODE: DAY SKY
+--------------------------------- */
+.sky-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #87CEEB 0%, #e0f6ff 100%);
+}
+
+.sun-container {
+  position: absolute;
+  top: 15%;
+  left: 20%;
+  width: 150px;
+  height: 150px;
+}
+
+.sun-core {
+  position: absolute;
+  inset: 20%;
+  background: #FFDF00;
+  border-radius: 50%;
+  box-shadow: 0 0 50px #ffdf00, 0 0 100px #ffdf00;
+  z-index: 2;
+}
+
+.sun-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,223,0,0.2) 50%, transparent 70%);
+  animation: pulseSun 6s infinite alternate ease-in-out;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+@keyframes pulseSun {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.3); opacity: 1; }
+}
+
+/* Clouds Base Shape (Pure CSS) */
+.cloud {
+  position: absolute;
+  background: #fff;
+  border-radius: 100px;
+  box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+  opacity: 0.8;
+}
+.cloud::before, .cloud::after {
+  content: '';
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+}
+
+.cloud-1 {
+  width: 200px; height: 60px; top: 10%; animation: floatClouds 60s linear infinite;
+}
+.cloud-1::before { width: 100px; height: 100px; top: -50px; left: 20px; }
+.cloud-1::after { width: 70px; height: 70px; top: -30px; right: 30px; }
+
+.cloud-2 {
+  width: 150px; height: 50px; top: 30%; animation: floatClouds 80s linear infinite;
+  animation-delay: -20s; transform: scale(0.8); opacity: 0.6;
+}
+.cloud-2::before { width: 80px; height: 80px; top: -40px; left: 15px; }
+.cloud-2::after { width: 50px; height: 50px; top: -20px; right: 25px; }
+
+.cloud-3 {
+  width: 300px; height: 80px; top: 60%; animation: floatClouds 100s linear infinite;
+  animation-delay: -50s; transform: scale(1.2); opacity: 0.7;
+}
+.cloud-3::before { width: 150px; height: 150px; top: -70px; left: 30px; }
+.cloud-3::after { width: 100px; height: 100px; top: -40px; right: 40px; }
+
+.cloud-4 {
+  width: 120px; height: 40px; top: 80%; animation: floatClouds 45s linear infinite;
+  animation-delay: -10s; transform: scale(0.6); opacity: 0.5;
+}
+.cloud-4::before { width: 60px; height: 60px; top: -30px; left: 10px; }
+.cloud-4::after { width: 40px; height: 40px; top: -15px; right: 20px; }
+
+@keyframes floatClouds {
+  0% { left: -300px; }
+  100% { left: 110vw; }
+}
+
+/* Light Mode: Wind Breeze Follower */
+.wind-breeze-container {
+  position: absolute;
+  top: 0; left: 0;
+  width: 0; height: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.wind-line {
+  position: absolute;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, transparent 100%);
+  height: 2px;
+  border-radius: 50%;
+  filter: blur(1px);
+  animation: windBreeze 2s infinite linear;
+}
+
+.w-1 { width: 150px; top: -20px; left: -100px; animation-delay: 0s; }
+.w-2 { width: 100px; top: 10px; left: -50px; animation-delay: 0.7s; opacity: 0.6; }
+.w-3 { width: 200px; top: 30px; left: -150px; animation-delay: 1.3s; opacity: 0.4; }
+
+@keyframes windBreeze {
+  0% { transform: translateX(0) scaleX(0.5); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateX(100px) scaleX(1.5); opacity: 0; }
+}
+
+/* ---------------------------------
+   DARK MODE: GALAXY & MILKY WAY
+--------------------------------- */
+.space-gradient {
+  position: absolute;
+  inset: 0;
+  /* Deep, realistic night sky gradient seen from Earth */
+  background: linear-gradient(180deg, #020107 0%, #060814 60%, #0d1326 100%);
+}
+
+.milky-way {
+  position: absolute;
+  top: -30%;
+  left: -20%;
+  width: 140%;
+  height: 160%;
+  /* Core band of the Milky Way with cosmic dust colors */
+  background: radial-gradient(ellipse 60% 100% at center, rgba(138, 43, 226, 0.12) 0%, rgba(255, 105, 180, 0.05) 30%, rgba(75, 0, 130, 0.03) 60%, transparent 80%);
+  transform: rotate(-35deg);
+  filter: blur(60px);
+  z-index: 1;
+}
+
+.milky-way-2 {
+  position: absolute;
+  top: 0%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  /* Secondary band for depth and star clustering */
+  background: radial-gradient(ellipse 40% 100% at center, rgba(200, 230, 255, 0.08) 0%, rgba(0, 100, 255, 0.04) 40%, transparent 70%);
+  transform: rotate(-30deg);
+  filter: blur(40px);
+  z-index: 1;
+}
+
+.stars-container {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.star {
+  position: absolute;
+  background: #ffffff;
+  border-radius: 50%;
+  animation: twinkle linear infinite alternate;
+}
+
+.star-glowing {
+  box-shadow: 0 0 4px #ffffff, 0 0 10px rgba(200, 230, 255, 0.8);
+}
+
+@keyframes twinkle {
+  0% { transform: scale(0.6); opacity: 0.1; }
+  100% { transform: scale(1.1); opacity: 1; }
+}
+
+/* Dark Mode: Mouse Galaxy Follower */
+.mouse-galaxy-container {
+  position: absolute;
+  top: 0; left: 0;
+  width: 0; height: 0;
+  pointer-events: none;
+  z-index: 10;
+  mix-blend-mode: screen;
+}
+
+.mouse-galaxy-glow {
+  position: absolute;
+  top: -150px; left: -150px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(138, 43, 226, 0.4) 0%, rgba(0, 191, 255, 0.2) 30%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(20px);
+  animation: pulseGlow 3s infinite alternate;
+}
+
+.mouse-star {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #fff, 0 0 20px #00bfff;
+  animation: spinStar 2s linear infinite;
+}
+
+.ms-1 { width: 4px; height: 4px; top: -30px; left: 20px; animation-duration: 3s; }
+.ms-2 { width: 3px; height: 3px; top: 40px; left: -20px; animation-duration: 2s; animation-direction: reverse; }
+.ms-3 { width: 5px; height: 5px; top: 10px; left: 40px; animation-duration: 4s; }
+.ms-4 { width: 2px; height: 2px; top: -40px; left: -30px; animation-duration: 1.5s; }
+
+@keyframes pulseGlow {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.2); opacity: 1; }
+}
+
+@keyframes spinStar {
+  0% { transform: rotate(0deg) translateX(10px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(10px) rotate(-360deg); }
+}

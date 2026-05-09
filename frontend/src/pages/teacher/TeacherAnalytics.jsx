@@ -13,7 +13,7 @@ const getPerf = (score) => {
   return              { label: 'At Risk',          color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   emoji: '🔴' };
 };
 
-const Bar = ({ value = 0, max = 100, color }) => (
+const Bar = ({ value = 0, color }) => (
   <div style={{ height: '10px', borderRadius: '99px', background: 'var(--border-color)', overflow: 'hidden', flex: 1 }}>
     <div style={{ height: '100%', width: `${Math.min(100, value)}%`, background: color, borderRadius: '99px', transition: 'width 0.8s cubic-bezier(0.25,1,0.5,1)' }} />
   </div>
@@ -28,7 +28,7 @@ const TeacherAnalytics = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    axios.get(`\/api/analytics/teacher/${classId}`, {
+    axios.get(`/api/analytics/teacher/${classId}`, {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => {
       setStats(res.data);
@@ -53,7 +53,7 @@ const TeacherAnalytics = () => {
   }).sort((a, b) => b.overall - a.overall);
 
   const atRisk = studentsWithScore.filter(s => s.overall < 40);
-  const topStudents = studentsWithScore.slice(0, 3);
+
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-color)', color: 'var(--text-color)' }}>
@@ -200,16 +200,16 @@ const TeacherAnalytics = () => {
                 const quizLec = quiz_performance.find(q => q.title === lec.title);
                 const feedbackLec = feedback.find(f => f.title === lec.title);
                 const quizAvg = quizLec?.avg_score != null ? Math.round(quizLec.avg_score * 10) : null;
-                const rating = feedbackLec?.avg_rating;
+                const avgRating = feedbackLec?.avg_rating;
                 const completionPct = lec.total_engagement > 0 ? Math.round((lec.completions / lec.total_engagement) * 100) : 0;
                 return (
                   <div key={i} style={{ padding: '1rem 1.25rem', background: 'var(--input-bg)', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <span style={{ fontWeight: 700 }}>{lec.title}</span>
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {rating != null && (
+                        {avgRating != null && (
                           <span style={{ padding: '0.2rem 0.75rem', borderRadius: '2rem', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', fontSize: '0.78rem', fontWeight: 700 }}>
-                            ⭐ {rating.toFixed(1)}/5
+                            ⭐ {avgRating.toFixed(1)}/5
                           </span>
                         )}
                         {quizAvg != null && (

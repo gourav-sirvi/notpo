@@ -34,6 +34,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 role TEXT CHECK(role IN ('teacher', 'student')) NOT NULL,
+                xp INTEGER DEFAULT 0,
                 profile_picture TEXT,
                 institution TEXT,
                 course TEXT,
@@ -125,6 +126,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 student_id INTEGER NOT NULL,
                 lecture_id INTEGER NOT NULL,
                 score INTEGER NOT NULL,
+                answers_json TEXT,
                 taken_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(student_id, lecture_id),
                 FOREIGN KEY (student_id) REFERENCES User(id) ON DELETE CASCADE,
@@ -165,6 +167,27 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE,
                 FOREIGN KEY (lecture_id) REFERENCES Lecture(lecture_id) ON DELETE CASCADE
             )`);
+
+            // Migration: Add transcript if it doesn't exist
+            db.run("ALTER TABLE Lecture ADD COLUMN transcript TEXT", (err) => {
+                if (err && !err.message.includes("duplicate column name")) {
+                    // Ignore duplicate column error
+                }
+            });
+
+            // Migration: Add answers_json if it doesn't exist
+            db.run("ALTER TABLE QuizScore ADD COLUMN answers_json TEXT", (err) => {
+                if (err && !err.message.includes("duplicate column name")) {
+                    // Ignore duplicate column error
+                }
+            });
+
+            // Migration: Add timestamps_json to Lecture if it doesn't exist
+            db.run("ALTER TABLE Lecture ADD COLUMN timestamps_json TEXT", (err) => {
+                if (err && !err.message.includes("duplicate column name")) {
+                    // Ignore duplicate column error
+                }
+            });
 
             console.log("Database schema completely initialized with all premium features.");
         });

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Play, RefreshCw, FileText, CheckCircle2, ChevronRight, ChevronLeft, Bookmark, Star, Send, MessageCircle, X } from 'lucide-react';
+import { ArrowLeft, Play, RefreshCw, FileText, CheckCircle2, ChevronRight, ChevronLeft, Bookmark, Star, Send, MessageCircle, X, Volume2, Square } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 
 const StudyLecture = () => {
@@ -10,6 +10,9 @@ const StudyLecture = () => {
   const [lecture, setLecture] = useState(null);
   const [activeTab, setActiveTab] = useState('notes'); // notes | flashcards | quiz
   const [summaryLevel, setSummaryLevel] = useState('medium'); 
+  const audioRef = useRef(null);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   
   // Interaction State
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -36,49 +39,53 @@ const StudyLecture = () => {
   const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
 
   useEffect(() => {
-    fetchLecture();
-    
-    let interval;
-    if (lecture && (lecture.status === 'processing' || !lecture.summaries.detailed)) {
-      interval = setInterval(() => {
-        fetchLecture();
-      }, 5000);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
+    const fetchLecture = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`/api/lectures/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setLecture(res.data);
+        setIsBookmarked(res.data.isBookmarked);
+        setUserFeedback(res.data.userFeedback);
+        if (res.data.userFeedback) {
+          setRating(res.data.userFeedback.rating);
+          setComment(res.data.userFeedback.comment || '');
+        }
+      } catch (err) {
+        console.error(err);
+        if (err.response?.status === 401) navigate('/login');
+      }
     };
-  }, [id, lecture?.status]);
 
+    fetchLecture();
+
+    let interval;
+    // Poll if still processing
+    const checkProcessing = () => {
+      setLecture(prev => {
+        if (prev && (prev.status === 'processing' || !prev.summaries?.detailed)) {
+          interval = setInterval(fetchLecture, 5000);
+        }
+        return prev;
+      });
+    };
+    checkProcessing();
+
+    return () => { if (interval) clearInterval(interval); };
+  }, [id, navigate]);
+
+  // Auto-scroll chat to bottom when new messages arrive
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatMessages]);
 
-  const fetchLecture = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`\/api/lectures/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setLecture(res.data);
-      setIsBookmarked(res.data.isBookmarked);
-      setUserFeedback(res.data.userFeedback);
-      if (res.data.userFeedback) {
-        setRating(res.data.userFeedback.rating);
-        setComment(res.data.userFeedback.comment || '');
-      }
-    } catch (err) {
-      console.error(err);
-      if(err.response?.status === 401) navigate('/login');
-    }
-  };
-
   const handleToggleBookmark = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post(`\/api/lectures/${id}/bookmark`, {}, {
+      const res = await axios.post(`/api/lectures/${id}/bookmark`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setIsBookmarked(res.data.isBookmarked);
@@ -98,11 +105,11 @@ const StudyLecture = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post(`\/api/chat/${id}`, { message: userMsg.text }, {
+      const res = await axios.post(`/api/chat/${id}`, { message: userMsg.text }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setChatMessages(prev => [...prev, { role: 'ai', text: res.data.answer }]);
-    } catch (err) {
+    } catch (error) {
       setChatMessages(prev => [...prev, { role: 'ai', text: 'Sorry, I am having trouble connecting to the AI assistant. Please try again later.' }]);
     } finally {
       setIsChatLoading(false);
@@ -116,7 +123,7 @@ const StudyLecture = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`\/api/lectures/${id}/feedback`, { rating, comment }, {
+      await axios.post(`/api/lectures/${id}/feedback`, { rating, comment }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUserFeedback({ rating, comment });
@@ -146,7 +153,7 @@ const StudyLecture = () => {
     setIsSubmittingQuiz(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post(`\/api/lectures/${id}/quiz`, { answers }, {
+      const res = await axios.post(`/api/lectures/${id}/quiz`, { answers }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setQuizResult(res.data);
@@ -157,6 +164,34 @@ const StudyLecture = () => {
       setIsSubmittingQuiz(false);
     }
   };
+
+  const handleSpeedChange = (e) => {
+    const speed = parseFloat(e.target.value);
+    setPlaybackSpeed(speed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = speed;
+    }
+  };
+
+  const toggleTTS = () => {
+    if (!lecture || !lecture.summaries || !lecture.summaries[summaryLevel]) return;
+    
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    } else {
+      const textToRead = lecture.summaries[summaryLevel].replace(/^\d+\.\s*/gm, ''); // Clean up numbers
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.onend = () => setIsSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+      setIsSpeaking(true);
+    }
+  };
+
+  // Cleanup TTS on unmount
+  useEffect(() => {
+    return () => window.speechSynthesis.cancel();
+  }, []);
 
   if (!lecture) return <div style={{ minHeight: '100vh', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
 
@@ -191,14 +226,68 @@ const StudyLecture = () => {
 
         <div className="auth-card" style={{ maxWidth: '100%', padding: '2.5rem', marginBottom: '2rem', position: 'relative' }}>
           <h1 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>{lecture.title}</h1>
-          <div style={{ color: 'var(--secondary-color)', fontSize: '1rem', fontWeight: 500, marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--secondary-color)', fontSize: '1rem', fontWeight: 500, marginBottom: '2rem' }}>
+            <img src={lecture.teacher_profile_picture ? (lecture.teacher_profile_picture.startsWith('http') ? lecture.teacher_profile_picture : `http://localhost:5000${lecture.teacher_profile_picture}`) : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(lecture.teacher_name)}`} alt={lecture.teacher_name} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
             {new Date(lecture.date).toLocaleDateString()} • {lecture.teacher_name}
           </div>
 
           {lecture.audio_file && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--input-bg)', padding: '1rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
               <Play size={20} color="var(--primary-color)" />
-              <audio src={`\${lecture.audio_file}`} controls style={{ width: '100%', height: '40px', outline: 'none' }} />
+              <audio ref={audioRef} src={`\${lecture.audio_file}`} controls style={{ flex: 1, height: '40px', outline: 'none' }} />
+              <select 
+                value={playbackSpeed} 
+                onChange={handleSpeedChange}
+                style={{ padding: '0.4rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--card-bg)', color: 'var(--text-color)', fontWeight: 600, cursor: 'pointer' }}
+              >
+                <option value="0.5">0.5x</option>
+                <option value="1">1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+              </select>
+            </div>
+          )}
+
+          {/* Smart Timestamps */}
+          {lecture.timestamps && lecture.timestamps.length > 0 && (
+            <div style={{ marginTop: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {lecture.timestamps.map((ts, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    if (audioRef.current) {
+                      audioRef.current.currentTime = ts.time_seconds;
+                      audioRef.current.play();
+                    }
+                  }}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '2rem',
+                    border: '1px solid var(--primary-color)',
+                    background: 'rgba(99, 102, 241, 0.1)',
+                    color: 'var(--primary-color)',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--primary-color)';
+                    e.currentTarget.style.color = '#fff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
+                    e.currentTarget.style.color = 'var(--primary-color)';
+                  }}
+                >
+                  <Play size={12} />
+                  {Math.floor(ts.time_seconds / 60)}:{(ts.time_seconds % 60).toString().padStart(2, '0')} - {ts.topic}
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -235,17 +324,34 @@ const StudyLecture = () => {
         {/* TAB CONTENTS */}
         {activeTab === 'notes' && (
           <div className="auth-card" style={{ maxWidth: '100%', padding: '2.5rem', animation: 'fadeIn 0.3s' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-             <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><FileText size={20} /> AI Summary</h2>
-             <select 
-                value={summaryLevel} 
-                onChange={(e) => setSummaryLevel(e.target.value)}
-                style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-color)' }}
-              >
-                <option value="easy">Easy (Simple Summary)</option>
-                <option value="medium">Medium (Simplified Explanation)</option>
-                <option value="detailed">High (Detailed Notes)</option>
-              </select>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+             <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}><FileText size={20} /> AI Summary</h2>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+               {lecture.summaries?.[summaryLevel] && (
+                 <button 
+                   onClick={toggleTTS}
+                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: `1px solid \${isSpeaking ? '#ef4444' : 'var(--primary-color)'}`, background: isSpeaking ? 'rgba(239, 68, 68, 0.1)' : 'rgba(140, 157, 129, 0.1)', color: isSpeaking ? '#ef4444' : 'var(--primary-color)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                 >
+                   {isSpeaking ? <Square size={16} /> : <Volume2 size={16} />}
+                   {isSpeaking ? 'Stop Reading' : 'Listen'}
+                 </button>
+               )}
+               <select 
+                  value={summaryLevel} 
+                  onChange={(e) => {
+                    setSummaryLevel(e.target.value);
+                    if (isSpeaking) {
+                      window.speechSynthesis.cancel();
+                      setIsSpeaking(false);
+                    }
+                  }}
+                  style={{ padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-color)' }}
+                >
+                  <option value="easy">Easy (Simple Summary)</option>
+                  <option value="medium">Medium (Simplified Explanation)</option>
+                  <option value="detailed">High (Detailed Notes)</option>
+                </select>
+             </div>
             </div>
             
             {lecture.status === 'processing' || !lecture.summaries?.[summaryLevel] ? (
@@ -262,8 +368,16 @@ const StudyLecture = () => {
                 <p>There was an error generating study notes for this lecture. Your teacher has been notified.</p>
               </div>
             ) : (
-              <div style={{ lineHeight: '1.8', fontSize: '1.1rem', whiteSpace: 'pre-wrap', color: 'var(--text-color)' }}>
-                {lecture.summaries[summaryLevel]}
+              <div>
+                {lecture.summaries[summaryLevel] ? (
+                  <ol style={{ paddingLeft: '1.5rem', margin: 0, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    {lecture.summaries[summaryLevel].split('\n').filter(p => p.trim()).map((point, i) => (
+                      <li key={i} style={{ lineHeight: '1.75', fontSize: '1.05rem', color: 'var(--text-color)', paddingLeft: '0.5rem' }}>
+                        {point.replace(/^\d+\.\s*/, '')}
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
               </div>
             )}
             
@@ -345,41 +459,91 @@ const StudyLecture = () => {
 
         {/* FLASHCARDS TAB */}
         {activeTab === 'flashcards' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'fadeIn 0.3s' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', animation: 'fadeIn 0.3s', padding: '1rem 0' }}>
             {(!lecture.flashcards || lecture.flashcards.length === 0) ? (
-              <p style={{ color: 'var(--secondary-color)' }}>No flashcards available for this lecture yet.</p>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--secondary-color)' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🧠</div>
+                <p>No flashcards yet. Check back after AI processing completes.</p>
+              </div>
             ) : (
               <>
-                <div 
+                <div style={{ fontSize: '0.85rem', color: 'var(--secondary-color)', marginBottom: '1.5rem', fontWeight: 500 }}>
+                  Card {currentCardIndex + 1} of {lecture.flashcards.length} — click to flip
+                </div>
+
+                {/* 3D Flip Card */}
+                <div
                   onClick={() => setIsFlipped(!isFlipped)}
-                  style={{
-                    width: '100%', maxWidth: '600px', height: '300px',
-                    background: isFlipped ? 'var(--primary-color)' : 'var(--card-bg)',
-                    color: isFlipped ? '#fff' : 'var(--text-color)',
-                    border: isFlipped ? 'none' : '1px solid var(--border-color)',
-                    borderRadius: '1.5rem', padding: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', textAlign: 'center', fontSize: '1.5rem', fontWeight: 600,
-                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
-                    transition: 'all 0.3s ease', transform: isFlipped ? 'scale(1.02)' : 'scale(1)'
-                  }}
+                  style={{ width: '100%', maxWidth: '580px', height: '280px', perspective: '1200px', cursor: 'pointer' }}
                 >
-                  {isFlipped 
-                    ? lecture.flashcards[currentCardIndex].back 
-                    : lecture.flashcards[currentCardIndex].front}
+                  <div style={{
+                    position: 'relative', width: '100%', height: '100%',
+                    transformStyle: 'preserve-3d',
+                    transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                  }}>
+                    {/* FRONT */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
+                      background: 'var(--card-bg)',
+                      border: '2px solid var(--border-color)',
+                      borderRadius: '1.5rem',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      padding: '2rem', textAlign: 'center',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
+                    }}>
+                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--secondary-color)', fontWeight: 700, marginBottom: '1.25rem' }}>Q U E S T I O N</div>
+                      <div style={{ fontSize: '1.3rem', fontWeight: 600, lineHeight: '1.5', color: 'var(--text-color)' }}>
+                        {lecture.flashcards[currentCardIndex]?.front}
+                      </div>
+                      <div style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--secondary-color)', opacity: 0.7 }}>Tap to reveal answer  ↻</div>
+                    </div>
+
+                    {/* BACK */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)',
+                      background: 'var(--primary-hover)',
+                      borderRadius: '1.5rem',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      padding: '2rem', textAlign: 'center',
+                      border: '1px solid var(--border-color)',
+                      boxShadow: '0 10px 30px var(--btn-shadow)'
+                    }}>
+                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '2px', color: 'rgba(255,255,255,0.65)', fontWeight: 700, marginBottom: '1.25rem' }}>A N S W E R</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 600, lineHeight: '1.6', color: '#ffffff' }}>
+                        {lecture.flashcards[currentCardIndex]?.back}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginTop: '2rem' }}>
-                  <button onClick={handlePrevCard} style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '50%', padding: '1rem', cursor: 'pointer', color: 'var(--text-color)' }}>
-                    <ChevronLeft size={24} />
+
+                {/* Dot nav + arrows */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '2rem' }}>
+                  <button onClick={handlePrevCard}
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-color)', transition: 'border-color 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary-color)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+                    <ChevronLeft size={22} />
                   </button>
-                  <span style={{ fontWeight: 600, color: 'var(--secondary-color)' }}>
-                    {currentCardIndex + 1} / {lecture.flashcards.length}
-                  </span>
-                  <button onClick={handleNextCard} style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '50%', padding: '1rem', cursor: 'pointer', color: 'var(--text-color)' }}>
-                    <ChevronRight size={24} />
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {lecture.flashcards.map((_, i) => (
+                      <div key={i}
+                        onClick={() => { setIsFlipped(false); setTimeout(() => setCurrentCardIndex(i), 150); }}
+                        style={{ width: i === currentCardIndex ? '24px' : '8px', height: '8px', borderRadius: '4px', background: i === currentCardIndex ? 'var(--primary-color)' : 'var(--border-color)', cursor: 'pointer', transition: 'all 0.3s' }} />
+                    ))}
+                  </div>
+
+                  <button onClick={handleNextCard}
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--border-color)', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-color)', transition: 'border-color 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary-color)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+                    <ChevronRight size={22} />
                   </button>
                 </div>
-                <p style={{ marginTop: '1rem', color: 'var(--secondary-color)', fontSize: '0.85rem' }}>Click the card to flip</p>
               </>
             )}
           </div>
@@ -397,7 +561,66 @@ const StudyLecture = () => {
                 <p style={{ fontSize: '1.2rem', color: 'var(--secondary-color)' }}>
                   You scored <strong style={{ color: 'var(--text-color)', fontSize: '1.5rem' }}>{quizResult?.score ?? lecture.user_score}</strong> out of {quizResult?.maxScore ?? lecture.mcqs.length}.
                 </p>
-                <p style={{ marginTop: '1rem', color: 'var(--secondary-color)', fontSize: '0.9rem' }}>The instructor has been notified of your score.</p>
+                <p style={{ marginTop: '1rem', color: 'var(--secondary-color)', fontSize: '0.9rem', marginBottom: '3rem' }}>The instructor has been notified of your score.</p>
+                
+                {/* Review Section */}
+                <div style={{ textAlign: 'left', marginTop: '2rem' }}>
+                  <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>Review Your Answers</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    {lecture.mcqs.map((mcq, idx) => {
+                      const userAnswers = quizResult ? answers : (lecture.user_answers || {});
+                      const selectedOpt = userAnswers[mcq.id];
+                      const correctOpt = mcq.correct_option;
+                      
+                      return (
+                        <div key={mcq.id} style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ marginBottom: '1rem', fontSize: '1.05rem', lineHeight: '1.5' }}>{idx + 1}. {mcq.question}</h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {['A', 'B', 'C', 'D'].map((opt) => {
+                              const isSelected = selectedOpt === opt;
+                              const isCorrect = correctOpt === opt;
+                              
+                              let bg = 'var(--input-bg)';
+                              let borderColor = 'var(--border-color)';
+                              let color = 'var(--text-color)';
+                              
+                              if (isCorrect) {
+                                bg = 'rgba(16, 185, 129, 0.1)';
+                                borderColor = '#10b981';
+                                color = '#10b981';
+                              } else if (isSelected && !isCorrect) {
+                                bg = 'rgba(239, 68, 68, 0.1)';
+                                borderColor = '#ef4444';
+                                color = '#ef4444';
+                              }
+
+                              return (
+                                <div key={opt} style={{ 
+                                  padding: '1rem', 
+                                  background: bg, 
+                                  border: `1px solid \${borderColor}`, 
+                                  borderRadius: '0.75rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  color: color,
+                                  fontWeight: isSelected || isCorrect ? 600 : 400
+                                }}>
+                                  <span>{opt}. {mcq[`option_\${opt.toLowerCase()}`]}</span>
+                                  <div style={{ fontSize: '0.85rem' }}>
+                                    {isCorrect && !isSelected && <span>✓ Correct Answer</span>}
+                                    {isCorrect && isSelected && <span>✓ You answered correctly</span>}
+                                    {isSelected && !isCorrect && <span>✗ Your Answer</span>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleQuizSubmit}>
@@ -437,11 +660,10 @@ const StudyLecture = () => {
                 <button 
                   type="submit" 
                   disabled={isSubmittingQuiz || Object.keys(answers).length < lecture.mcqs.length}
+                  className="btn-interactive"
                   style={{
                     width: '100%', marginTop: '3rem', padding: '1rem', borderRadius: '1rem',
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    color: 'white', border: 'none', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer',
-                    opacity: (isSubmittingQuiz || Object.keys(answers).length < lecture.mcqs.length) ? 0.6 : 1
+                    fontSize: '1.1rem', fontWeight: 600,
                   }}
                 >
                   {isSubmittingQuiz ? 'Submitting...' : 'Submit Quiz'}

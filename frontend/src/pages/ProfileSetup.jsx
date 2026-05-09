@@ -35,7 +35,7 @@ const ProfileSetup = () => {
     setIsSaving(true);
     setError('');
     try {
-      await axios.put('\/api/profiles/me', formData, {
+      await axios.put('/api/profiles/me', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Update local user object
@@ -63,7 +63,7 @@ const ProfileSetup = () => {
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
             <span style={{ fontSize: '1.8rem' }}>👋</span>
           </div>
           <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '0.4rem' }}>
@@ -75,7 +75,7 @@ const ProfileSetup = () => {
         </div>
 
         {/* Role Badge */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 1rem', borderRadius: '2rem', background: isTeacher ? 'rgba(99,102,241,0.1)' : 'rgba(16,185,129,0.1)', border: `1px solid ${isTeacher ? '#6366f1' : '#10b981'}`, color: isTeacher ? '#6366f1' : '#10b981', fontWeight: 700, fontSize: '0.85rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 1rem', borderRadius: '2rem', background: isTeacher ? 'var(--input-bg)' : 'rgba(16,185,129,0.1)', border: `1px solid \${isTeacher ? 'var(--primary-color)' : 'var(--success)'}`, color: isTeacher ? 'var(--primary-color)' : 'var(--success)', fontWeight: 700, fontSize: '0.85rem', marginBottom: '2rem' }}>
           {isTeacher ? '🧑‍🏫 Teacher Account' : '🎓 Student Account'}
         </div>
 
@@ -160,7 +160,7 @@ const ProfileSetup = () => {
           <button onClick={handleSkip} style={{ flex: 1, padding: '0.85rem', borderRadius: '0.75rem', background: 'var(--input-bg)', color: 'var(--secondary-color)', border: '1px solid var(--border-color)', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}>
             Skip for now
           </button>
-          <button onClick={handleSave} disabled={isSaving} style={{ flex: 2, padding: '0.85rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: isSaving ? 0.7 : 1 }}>
+          <button onClick={handleSave} disabled={isSaving} className="btn-interactive" style={{ flex: 2, padding: '0.85rem', borderRadius: '0.75rem', fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: isSaving ? 0.7 : 1 }}>
             {isSaving
               ? <div style={{ width: '18px', height: '18px', border: '3px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               : <><CheckCircle size={18} /> Save & Continue</>}

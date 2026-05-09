@@ -5,3 +5,32 @@ firebase-debug.log
 dist/
 build/
 .vscode/
+
+# Uploaded media files
+backend/uploads/
+
+# Logs & debug artifacts
+*.log
+backend/error.log
+backend/startup_error.txt
+backend/error_clean.txt
+
+# Test & debug scripts
+backend/debug_run.js
+backend/test_crash.js
+backend/test_crash2.js
+backend/test_hf_api.js
+backend/test_profile_update.js
+backend/test_transformers.js
+backend/test_whisper.js
+backend/migrate_xp.js
+backend/dummy.wav
+backend/beep.ogg
+
+# Temp directories
+tmp/
+
+# Frontend lint/build artifacts
+frontend/lint_output.txt
+frontend/out.json
+frontend/out2.json

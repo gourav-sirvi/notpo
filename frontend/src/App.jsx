@@ -40,9 +40,12 @@ const RootRedirect = () => {
   return <Navigate to={`/${user.role}/dashboard`} replace />;
 };
 
+import GlobalBackground from './components/GlobalBackground';
+
 function App() {
   return (
     <Router>
+      <GlobalBackground />
       <ThemeToggle />
       <Routes>
         <Route path="/" element={<RootRedirect />} />

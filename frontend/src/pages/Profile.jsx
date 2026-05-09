@@ -18,6 +18,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -25,7 +26,7 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('\/api/profiles/me', {
+      const res = await axios.get('/api/profiles/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const d = res.data;
@@ -61,7 +62,7 @@ const Profile = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.put('\/api/profiles/me', formData, {
+      const res = await axios.put('/api/profiles/me', formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMessage(res.data.message);
@@ -88,7 +89,7 @@ const Profile = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('\/api/profiles/upload-photo', data, {
+      const res = await axios.post('/api/profiles/upload-photo', data, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
       });
       setProfilePicture(res.data.profile_picture);
@@ -108,6 +109,7 @@ const Profile = () => {
     input: { borderRadius: '0.75rem', width: '100%' }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const SectionTitle = ({ icon: Icon, title }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.5rem 0 1rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
       <Icon size={18} color="var(--primary-color)" />
@@ -161,7 +163,7 @@ const Profile = () => {
             >
               {profilePicture ? (
                 <img 
-                  src={profilePicture.startsWith('http') ? profilePicture : `\${profilePicture}`} 
+                  src={profilePicture.startsWith('http') ? profilePicture : `http://localhost:5000\${profilePicture}`} 
                   alt="Avatar" 
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                 />
@@ -273,15 +275,13 @@ const Profile = () => {
             <button 
               type="submit" 
               disabled={isLoading}
+              className="btn-interactive"
               style={{
                 marginTop: '1.5rem', padding: '1rem', borderRadius: '0.75rem', width: '100%',
-                background: 'linear-gradient(135deg, #38bdf8, #6366f1)',
-                color: 'white', border: 'none', fontSize: '1.1rem', fontWeight: 600, cursor: 'pointer',
+                fontSize: '1.1rem', fontWeight: 600,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                opacity: isLoading ? 0.7 : 1, transition: 'transform 0.1s'
+                opacity: isLoading ? 0.7 : 1
               }}
-              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
-              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
             >
               <Save size={20} /> {isLoading ? 'Saving...' : 'Save Changes'}
             </button>

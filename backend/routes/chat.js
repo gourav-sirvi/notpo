@@ -1,8 +1,19 @@
 const express = require('express');
 const db = require('../database');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const Groq = require('groq-sdk');
 
 const router = express.Router();
+
+let groqClient = null;
+const initGroq = () => {
+    if (!groqClient) {
+        groqClient = new Groq({
+            apiKey: process.env.GROQ_API_KEY || 'MISSING_API_KEY'
+        });
+    }
+    return groqClient;
+};
 
 // @route   POST /api/chat/:lectureId
 // @desc    Ask a question about a specific lecture transcript
@@ -38,28 +49,19 @@ Helpful Response:
 `;
 
         try {
-            const response = await fetch("http://localhost:11434/api/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    model: "llama3",
-                    prompt: prompt,
-                    stream: false,
-                    options: {
-                        temperature: 0.4
-                    }
-                })
+            const client = initGroq();
+            const completion = await client.chat.completions.create({
+                messages: [{ role: 'user', content: prompt }],
+                model: 'llama3-70b-8192',
+                temperature: 0.4,
+                max_tokens: 1024,
             });
 
-            if (!response.ok) throw new Error(`Ollama error: ${response.statusText}`);
-            
-            const result = await response.json();
-            const aiResponse = result.response.trim();
-
+            const aiResponse = completion.choices[0]?.message?.content?.trim() || "I'm sorry, I couldn't generate a response.";
             res.json({ answer: aiResponse });
         } catch (error) {
-            console.error("Chat AI error:", error.message);
-            res.status(500).json({ error: 'AI Assistant is currently unavailable' });
+            console.error("Chat Groq AI error:", error.message);
+            res.status(500).json({ error: 'AI Assistant is currently unavailable. Please check your Groq API key.' });
         }
     });
 });
